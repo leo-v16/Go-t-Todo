@@ -68,7 +68,7 @@ func ConvertTaskToString(T []Task) []string {
 		if task.done {
 			task_status = "DONE"
 		}
-		task_string := "\n$TASK:" + task_desp + "$STATUS:" + task_status
+		task_string := "$TASK:" + task_desp + "$STATUS:" + task_status + "\n"
 		task_string_list = append(task_string_list, task_string)
 	}
 	return task_string_list
@@ -87,33 +87,6 @@ func AddTasksToFile(file_path string, T []Task) {
 	}
 }
 
-func main() {
-	file_path := "./database/database.db"
-	task_list := ExtractTaskFromFile(file_path)
-	for {
-		command := GetCommand(">>:")
-		if !ValidateCommand(command) {
-			return
-		}
-		ClearScreen()
-		fmt.Println(command)
-		head := command[0]
-		switch head {
-		case "exit":
-			AddTasksToFile(file_path, task_list)
-			return
-		case "create":
-			title := command[1]
-			task_list = append(task_list, Task{title, false})
-			return
-		case "list":
-			ListTaskList(task_list)
-		case "help":
-			return
-		}
-	}
-}
-
 func ClearScreen() {
 	fmt.Print("\033[H\033[2J")
 }
@@ -127,9 +100,20 @@ func Input[T any](ouput string) T {
 
 func GetCommand(output string) []string {
 	print(output)
-	var command_str string
-	fmt.Scan(&command_str)
-	command := strings.Fields(command_str)
+	reader := bufio.NewReader(os.Stdin)
+	command_line, _ := reader.ReadString('\n')
+	command_line = strings.TrimSpace(command_line)
+
+	pull_pattern := regexp.MustCompile(`"([^"]+)"|(\S+)`)
+	matches := pull_pattern.FindAllStringSubmatch(command_line, -1)
+	var command []string
+	for _, match := range matches {
+		if match[1] != "" {
+			command = append(command, match[1])
+		} else {
+			command = append(command, match[2])
+		}
+	}
 	return command
 }
 
@@ -146,5 +130,31 @@ func ValidateCommand(command []string) bool {
 func ListTaskList(task_list []Task) {
 	for idx, task := range task_list {
 		fmt.Println(idx, task)
+	}
+}
+
+func main() {
+	file_path := "./database/database.db"
+	task_list := ExtractTaskFromFile(file_path)
+	for {
+		command := GetCommand(">>:")
+		// if !ValidateCommand(command) {
+		// 	return
+		// }
+		ClearScreen()
+		fmt.Println(command)
+		head := command[0]
+		switch head {
+		case "exit":
+			AddTasksToFile(file_path, task_list)
+			return
+		case "create":
+			title := command[1]
+			task_list = append(task_list, Task{title, false})
+		case "list":
+			ListTaskList(task_list)
+		case "help":
+			return
+		}
 	}
 }
