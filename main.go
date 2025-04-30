@@ -150,23 +150,26 @@ func ListTaskList(task_list []Task) {
 }
 
 func DeleteTask(task_list []Task, task_no_list ...int) []Task {
-	shift_space := 0
-	task_no_idx := 0
 	check := true
+	task_no_idx := 0
 	for idx := range task_list {
 		if check && idx == task_no_list[task_no_idx] {
-			shift_space++
 			task_no_idx++
 			if task_no_idx == len(task_no_list) {
 				check = false
 			}
 		}
-		if idx+shift_space >= len(task_list) {
+		if idx+task_no_idx >= len(task_list) {
 			break
 		}
-		task_list[idx] = task_list[idx+shift_space]
+		task_list[idx] = task_list[idx+task_no_idx]
 	}
 	task_list = task_list[:len(task_list)-len(task_no_list)]
+	return task_list
+}
+
+func CreateTask(task_list []Task, tasks ...Task) []Task {
+	task_list = append(task_list, tasks...)
 	return task_list
 }
 
@@ -186,12 +189,16 @@ func main() {
 			AddTasksToFile(file_path, task_list)
 			return
 		case "create":
-			title := command[1]
-			task_list = append(task_list, Task{title, false})
+			task_no_len := len(command) - 1
+			task_new_list := make([]Task, task_no_len)
+			for idx := range task_new_list {
+				task_new_list[idx] = Task{command[idx+1], false}
+			}
+			task_list = CreateTask(task_list, task_new_list...)
 		case "delete":
 			task_no_len := len(command) - 1
 			task_no_list := make([]int, task_no_len)
-			for idx, _ := range task_no_list {
+			for idx := range task_no_list {
 				task_no_list[idx], _ = strconv.Atoi(command[idx+1])
 			}
 			task_list = DeleteTask(task_list, task_no_list...)
