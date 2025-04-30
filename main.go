@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -75,7 +76,7 @@ func ConvertTaskToString(T []Task) []string {
 }
 
 func AddTasksToFile(file_path string, T []Task) {
-	file, err := os.OpenFile(file_path, os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(file_path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		println("Task File Could Not Be Opened To Add")
 	}
@@ -117,6 +118,21 @@ func GetCommand(output string) []string {
 	return command
 }
 
+func DisplayCommand(command []string) {
+	print("[")
+	for idx, str := range command {
+		if strings.Contains(str, " ") {
+			fmt.Printf(`"%v"`, str)
+		} else {
+			print(str)
+		}
+		if idx != len(command)-1 {
+			print(" ")
+		}
+	}
+	print("]\n")
+}
+
 func ValidateCommand(command []string) bool {
 	if len(command) < 1 {
 		return false
@@ -133,6 +149,27 @@ func ListTaskList(task_list []Task) {
 	}
 }
 
+func DeleteTask(task_list []Task, task_no_list ...int) []Task {
+	shift_space := 0
+	task_no_idx := 0
+	check := true
+	for idx := range task_list {
+		if check && idx == task_no_list[task_no_idx] {
+			shift_space++
+			task_no_idx++
+			if task_no_idx == len(task_no_list) {
+				check = false
+			}
+		}
+		if idx+shift_space >= len(task_list) {
+			break
+		}
+		task_list[idx] = task_list[idx+shift_space]
+	}
+	task_list = task_list[:len(task_list)-len(task_no_list)]
+	return task_list
+}
+
 func main() {
 	file_path := "./database/database.db"
 	task_list := ExtractTaskFromFile(file_path)
@@ -142,7 +179,7 @@ func main() {
 		// 	return
 		// }
 		ClearScreen()
-		fmt.Println(command)
+		DisplayCommand(command)
 		head := command[0]
 		switch head {
 		case "exit":
@@ -151,6 +188,13 @@ func main() {
 		case "create":
 			title := command[1]
 			task_list = append(task_list, Task{title, false})
+		case "delete":
+			task_no_len := len(command) - 1
+			task_no_list := make([]int, task_no_len)
+			for idx, _ := range task_no_list {
+				task_no_list[idx], _ = strconv.Atoi(command[idx+1])
+			}
+			task_list = DeleteTask(task_list, task_no_list...)
 		case "list":
 			ListTaskList(task_list)
 		case "help":
